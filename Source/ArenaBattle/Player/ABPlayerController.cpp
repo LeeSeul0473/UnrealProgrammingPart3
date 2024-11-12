@@ -2,6 +2,7 @@
 
 
 #include "Player/ABPlayerController.h"
+#include "ArenaBattle.h"
 #include "UI/ABHUDWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "ABSaveGame.h"
@@ -20,6 +21,8 @@ AABPlayerController::AABPlayerController()
 void AABPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+
+	AB_LOG(LogABNetwork, Log, TEXT("Game Started"));
 
 	FInputModeGameOnly GameOnlyInputMode;
 	SetInputMode(GameOnlyInputMode);
