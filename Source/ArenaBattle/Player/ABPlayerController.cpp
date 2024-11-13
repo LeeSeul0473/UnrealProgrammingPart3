@@ -20,10 +20,12 @@ AABPlayerController::AABPlayerController()
 
 void AABPlayerController::BeginPlay()
 {
+	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("Begin"));
+
 	Super::BeginPlay();
 
-	AB_LOG(LogABNetwork, Log, TEXT("Game Started"));
+	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("End"));
 
-	FInputModeGameOnly GameOnlyInputMode;
-	SetInputMode(GameOnlyInputMode);
+	//FInputModeGameOnly GameOnlyInputMode;
+	//SetInputMode(GameOnlyInputMode);
 }
