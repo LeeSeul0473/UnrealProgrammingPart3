@@ -5,6 +5,7 @@
 #include "ArenaBattle.h"
 #include "ABGameMode.h"
 #include "Player/ABPlayerController.h"
+#include "ABGameState.h"
 
 AABGameMode::AABGameMode()
 {
@@ -19,6 +20,8 @@ AABGameMode::AABGameMode()
 	{
 		PlayerControllerClass = PlayerControllerClassRef.Class;
 	}
+
+	GameStateClass = AABGameState::StaticClass();
 }
 
 void AABGameMode::OnPlayerDead()
@@ -30,8 +33,8 @@ void AABGameMode::PreLogin(const FString& Options, const FString& Address, const
 {
 	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("Begin"));
 	Super::PreLogin(Options, Address, UniqueId, ErrorMessage);
+	//ErrorMessage = TEXT("Server is Full");
 	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("End"));
-
 }
 
 APlayerController* AABGameMode::Login(UPlayer* NewPlayer, ENetRole InRemoteRole, const FString& Portal, const FString& Options, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
