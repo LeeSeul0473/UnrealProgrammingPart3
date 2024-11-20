@@ -2,6 +2,7 @@
 
 
 #include "Character/ABCharacterPlayer.h"
+#include "ArenaBattle.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "InputMappingContext.h"
@@ -86,6 +87,61 @@ void AABCharacterPlayer::SetDead()
 	{
 		DisableInput(PlayerController);
 	}
+}
+
+void AABCharacterPlayer::PossessedBy(AController* NewController)
+{
+	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("Begin"));
+	AActor* OwnerActor = GetOwner();
+	if (OwnerActor)
+	{
+		AB_LOG(LogAB, Log, TEXT("Owner : %s"), *OwnerActor->GetName());
+	}
+	else
+	{
+		AB_LOG(LogAB, Log, TEXT("%s"), TEXT("No Owner"));
+	}
+
+	Super::PossessedBy(NewController);
+
+	OwnerActor = GetOwner();
+	if (OwnerActor)
+	{
+		AB_LOG(LogAB, Log, TEXT("Owner : %s"), *OwnerActor->GetName());
+	}
+	else
+	{
+		AB_LOG(LogAB, Log, TEXT("%s"), TEXT("No Owner"));
+	}
+
+	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("End"));
+}
+
+void AABCharacterPlayer::OnRep_Owner()
+{
+	AB_LOG(LogAB, Log, TEXT("%s %s"), *GetName(), TEXT("Begin"));
+
+	Super::OnRep_Owner();
+
+	AActor* OwnerActor = GetOwner();
+
+	if (OwnerActor)
+	{
+		AB_LOG(LogAB, Log, TEXT("Owner : %s"), *OwnerActor->GetName());
+	}
+	else
+	{
+		AB_LOG(LogAB, Log, TEXT("%s"), TEXT("No Owner"));
+	}
+}
+
+void AABCharacterPlayer::PostNetInit()
+{
+	AB_LOG(LogAB, Log, TEXT("Begin %s"), *GetName());
+
+	Super::PostNetInit();
+
+	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("End"));
 }
 
 void AABCharacterPlayer::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
