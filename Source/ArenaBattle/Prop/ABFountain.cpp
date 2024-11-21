@@ -2,6 +2,7 @@
 
 
 #include "Prop/ABFountain.h"
+#include "ArenaBattle.h"
 #include "Components/StaticMeshComponent.h"
 #include "Net/UnrealNetwork.h"
 
@@ -50,12 +51,6 @@ void AABFountain::Tick(float DeltaTime)
 		AddActorLocalRotation(FRotator(0.0f, RotationRate * DeltaTime, 0.0f));
 		ServerRotationYaw = RootComponent->GetComponentRotation().Yaw;
 	}
-	else
-	{
-		FRotator NewRotator = RootComponent->GetComponentRotation();
-		NewRotator.Yaw = ServerRotationYaw;
-		RootComponent->SetWorldRotation(NewRotator);
-	}
 }
 
 void AABFountain::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -63,5 +58,23 @@ void AABFountain::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AABFountain, ServerRotationYaw);
+}
+
+void AABFountain::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Connection)
+{
+	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("Begin"));
+
+	Super::OnActorChannelOpen(InBunch, Connection);
+
+	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("End"));
+}
+
+void AABFountain::OnRep_ServerRotationYaw()
+{
+	//AB_LOG(LogAB, Log, TEXT("Yaw : %f"), ServerRotationYaw);
+
+	FRotator NewRotator = RootComponent->GetComponentRotation();
+	NewRotator.Yaw = ServerRotationYaw;
+	RootComponent->SetWorldRotation(NewRotator);
 }
 
