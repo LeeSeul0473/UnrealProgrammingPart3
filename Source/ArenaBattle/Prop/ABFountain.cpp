@@ -33,6 +33,7 @@ AABFountain::AABFountain()
 
 	bReplicates = true;
 	NetUpdateFrequency = 1.0f;
+	NetCullDistanceSquared = 4000000.0f;
 }
 
 // Called when the game starts or when spawned
@@ -88,9 +89,20 @@ void AABFountain::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Connecti
 	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("End"));
 }
 
+bool AABFountain::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
+{
+	bool NetRelevantResult = Super::IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
+	if (!NetRelevantResult)
+	{
+		AB_LOG(LogAB, Log, TEXT("Not Relevant : [%s] %s"), *RealViewer->GetName(), *SrcLocation.ToCompactString());
+	}
+
+	return NetRelevantResult;
+}
+
 void AABFountain::OnRep_ServerRotationYaw()
 {
-	//AB_LOG(LogAB, Log, TEXT("Yaw : %f"), ServerRotationYaw);
+	AB_LOG(LogAB, Log, TEXT("Yaw : %f"), ServerRotationYaw);
 
 	FRotator NewRotator = RootComponent->GetComponentRotation();
 	NewRotator.Yaw = ServerRotationYaw;
