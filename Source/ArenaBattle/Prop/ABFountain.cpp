@@ -4,6 +4,7 @@
 #include "Prop/ABFountain.h"
 #include "ArenaBattle.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/PointLightComponent.h"
 #include "Net/UnrealNetwork.h"
 
 // Sets default values
@@ -34,6 +35,7 @@ AABFountain::AABFountain()
 	bReplicates = true;
 	NetUpdateFrequency = 1.0f;
 	NetCullDistanceSquared = 4000000.0f;
+	//NetDormancy = DORM_Initial;
 }
 
 // Called when the game starts or when spawned
@@ -41,6 +43,25 @@ void AABFountain::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (HasAuthority())
+	{
+		FTimerHandle Handle;
+		GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]
+			{
+				//BigData.Init(BigDataElement, 1000);
+				//BigDataElement += 1.0f;
+				ServerLightColor = FLinearColor(FMath::FRandRange(0.0f, 1.0f), FMath::FRandRange(0.0f, 1.0f), FMath::FRandRange(0.0f, 1.0f), 1.0f);
+				OnRep_ServerLightColor();
+			}
+		), 1.0f, true, 0.0f);
+
+		FTimerHandle Handle2;
+		GetWorld()->GetTimerManager().SetTimer(Handle2, FTimerDelegate::CreateLambda([&]
+			{
+				//FlushNetDormancy();
+			}
+		), 10.0f, false, -1.0f);
+	}
 }
 
 // Called every frame
@@ -78,6 +99,9 @@ void AABFountain::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AABFountain, ServerRotationYaw);
+	//DOREPLIFETIME(AABFountain, BigData);
+	//OREPLIFETIME_CONDITION(AABFountain, ServerLightColor, COND_InitialOnly);
+	DOREPLIFETIME(AABFountain, ServerLightColor);
 }
 
 void AABFountain::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Connection)
@@ -100,9 +124,16 @@ bool AABFountain::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewT
 	return NetRelevantResult;
 }
 
+void AABFountain::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
+{
+	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("Begin"));
+
+	Super::PreReplication(ChangedPropertyTracker);
+}
+
 void AABFountain::OnRep_ServerRotationYaw()
 {
-	AB_LOG(LogAB, Log, TEXT("Yaw : %f"), ServerRotationYaw);
+	//AB_LOG(LogAB, Log, TEXT("Yaw : %f"), ServerRotationYaw);
 
 	FRotator NewRotator = RootComponent->GetComponentRotation();
 	NewRotator.Yaw = ServerRotationYaw;
@@ -110,5 +141,19 @@ void AABFountain::OnRep_ServerRotationYaw()
 
 	ClientTimeBetweenLastUpdate = ClientTimeSinceUpdate;
 	ClientTimeSinceUpdate = 0.0f;
+}
+
+void AABFountain::OnRep_ServerLightColor()
+{
+	if (!HasAuthority())
+	{
+		AB_LOG(LogAB, Log, TEXT("LightColor : %s"), *ServerLightColor.ToString());
+	}
+
+	UPointLightComponent* PointLight = Cast<UPointLightComponent>(GetComponentByClass(UPointLightComponent::StaticClass()));
+	if (PointLight)
+	{
+		PointLight->SetLightColor(ServerLightColor);
+	}
 }
 
