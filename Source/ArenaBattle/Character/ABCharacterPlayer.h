@@ -71,6 +71,10 @@ protected:
 	ECharacterControlType CurrentCharacterControlType;
 
 	void Attack();
+	virtual void AttackHitCheck() override;
+
+	uint8 bCanAttack : 1;
+	float AttackTime = 1.4667f;
 
 // UI Section
 protected:
