@@ -6,6 +6,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "EngineUtils.h"
 
 // Sets default values
 AABFountain::AABFountain()
@@ -50,8 +51,16 @@ void AABFountain::BeginPlay()
 			{
 				//BigData.Init(BigDataElement, 1000);
 				//BigDataElement += 1.0f;
-				ServerLightColor = FLinearColor(FMath::FRandRange(0.0f, 1.0f), FMath::FRandRange(0.0f, 1.0f), FMath::FRandRange(0.0f, 1.0f), 1.0f);
-				OnRep_ServerLightColor();
+				//ServerLightColor = FLinearColor(FMath::FRandRange(0.0f, 1.0f), FMath::FRandRange(0.0f, 1.0f), FMath::FRandRange(0.0f, 1.0f), 1.0f);
+				//OnRep_ServerLightColor();
+
+				//NetMulticastRPC
+				//const FLinearColor NewLightColor = FLinearColor(FMath::FRandRange(0.0f, 1.0f), FMath::FRandRange(0.0f, 1.0f), FMath::FRandRange(0.0f, 1.0f), 1.0f);
+				//MulticastRPCChangeLightColor(NewLightColor);
+
+				//ClientRPC
+				const FLinearColor NewLightColor = FLinearColor(FMath::FRandRange(0.0f, 1.0f), FMath::FRandRange(0.0f, 1.0f), FMath::FRandRange(0.0f, 1.0f), 1.0f);
+				ClientRPCChangeLightColor(NewLightColor);
 			}
 		), 1.0f, true, 0.0f);
 
@@ -59,8 +68,39 @@ void AABFountain::BeginPlay()
 		GetWorld()->GetTimerManager().SetTimer(Handle2, FTimerDelegate::CreateLambda([&]
 			{
 				//FlushNetDormancy();
+
+				//Client OwnerSet 1
+				//for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+				//{
+				//	APlayerController* PlayerController = Iterator->Get();
+				//	if (PlayerController && !PlayerController->IsLocalController())
+				//	{
+				//		SetOwner(PlayerController);
+				//		break;
+				//	}
+				//}
+
+				//Client OwnerSet 2
+				for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld()))
+				{
+					if (PlayerController && !PlayerController->IsLocalController())
+					{
+						SetOwner(PlayerController);
+						break;
+					}
+				}
 			}
 		), 10.0f, false, -1.0f);
+	}
+	else
+	{
+		//ServerRPC
+		//FTimerHandle Handle;
+		//GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]
+		//	{
+		//		ServerRPCChangeLightColor();
+		//	}
+		//), 1.0f, true, 0.0f);
 	}
 }
 
@@ -154,6 +194,39 @@ void AABFountain::OnRep_ServerLightColor()
 	if (PointLight)
 	{
 		PointLight->SetLightColor(ServerLightColor);
+	}
+}
+
+void AABFountain::ClientRPCChangeLightColor_Implementation(const FLinearColor& NewLightColor)
+{
+	AB_LOG(LogAB, Log, TEXT("LightColor : %s"), *NewLightColor.ToString());
+
+	UPointLightComponent* PointLight = Cast<UPointLightComponent>(GetComponentByClass(UPointLightComponent::StaticClass()));
+	if (PointLight)
+	{
+		PointLight->SetLightColor(NewLightColor);
+	}
+}
+
+bool AABFountain::ServerRPCChangeLightColor_Validate()
+{
+	return true;
+}
+
+void AABFountain::ServerRPCChangeLightColor_Implementation()
+{
+	const FLinearColor NewLightColor = FLinearColor(FMath::FRandRange(0.0f, 1.0f), FMath::FRandRange(0.0f, 1.0f), FMath::FRandRange(0.0f, 1.0f), 1.0f);
+	MulticastRPCChangeLightColor(NewLightColor);
+}
+
+void AABFountain::MulticastRPCChangeLightColor_Implementation(const FLinearColor& NewLightColor)
+{
+	AB_LOG(LogAB, Log, TEXT("LightColor : %s"), *NewLightColor.ToString());
+
+	UPointLightComponent* PointLight = Cast<UPointLightComponent>(GetComponentByClass(UPointLightComponent::StaticClass()));
+	if (PointLight)
+	{
+		PointLight->SetLightColor(NewLightColor);
 	}
 }
 

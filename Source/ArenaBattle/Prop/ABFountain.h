@@ -51,6 +51,15 @@ public:
 	UFUNCTION()
 	void OnRep_ServerLightColor();
 
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastRPCChangeLightColor(const FLinearColor& NewLightColor);
+	
+	UFUNCTION(Server, Unreliable, WithValidation)
+	void ServerRPCChangeLightColor();
+
+	UFUNCTION(Client, Unreliable)
+	void ClientRPCChangeLightColor(const FLinearColor& NewLightColor);
+
 	float RotationRate = 30.0f;
 	float ClientTimeSinceUpdate = 0.0f;
 	float ClientTimeBetweenLastUpdate = 0.0f;
