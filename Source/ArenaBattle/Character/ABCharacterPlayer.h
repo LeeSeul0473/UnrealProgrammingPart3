@@ -75,6 +75,8 @@ protected:
 	void Attack();
 	void PlayAttackAnimation();
 	virtual void AttackHitCheck() override;
+	void AttackHitConfirm(AActor* HitResult);
+	void DrawDebugAttackRange(const FColor& DrawColor, FVector TraceStart, FVector TraceEnd, FVector Forward);
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerRPCAttack(float AttackStartTime);
@@ -82,12 +84,20 @@ protected:
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastRPCAttack();
 
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerRPCNotifyHit(const FHitResult& HitResult, float HitCheckTime);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerRPCNotifyMiss(FVector TraceStart, FVector TraceEnd, FVector TraceDir, float HitCheckTime);
+
 	UPROPERTY(ReplicatedUsing = OnRep_CanAttack)
 	uint8 bCanAttack : 1;
 
 	float AttackTime = 1.4667f;
 	float LastAttackStartTime = 0.0f;
 	float AttackTimeDifference = 0.0f;
+	float AcceptCheckDistance = 300.0f;
+	float AcceptMinCheckTime = 0.15f;
 
 	UFUNCTION()
 	void OnRep_CanAttack();
