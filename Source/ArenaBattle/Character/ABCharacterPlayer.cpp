@@ -276,6 +276,19 @@ void AABCharacterPlayer::Attack()
 
 	if (bCanAttack)
 	{
+		if (!HasAuthority())
+		{
+			bCanAttack = false;
+			OnRep_CanAttack();
+
+			FTimerHandle Handle;
+			GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]
+				{
+					bCanAttack = true;
+					OnRep_CanAttack();
+				}
+			), AttackTime, false, -1.0f);
+		}
 		ServerRPCAttack();
 		//bCanAttack = false;
 		//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
@@ -291,6 +304,10 @@ void AABCharacterPlayer::Attack()
 		//UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		//AnimInstance->Montage_Play(ComboActionMontage);
 	}
+}
+
+void AABCharacterPlayer::PlayAttackAnimation()
+{
 }
 
 void AABCharacterPlayer::AttackHitCheck()
@@ -333,7 +350,7 @@ bool AABCharacterPlayer::ServerRPCAttack_Validate()
 	return true;
 }
 
-void AABCharacterPlayer::ServerRPCAttack_Implementation()
+void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 {
 	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("Begin"));
 	MulticastRPCAttack();
