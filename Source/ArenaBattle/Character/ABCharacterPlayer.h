@@ -84,11 +84,14 @@ protected:
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastRPCAttack();
 
+	UFUNCTION(Client, Unreliable)
+	void ClientRPCPlayAnimation(AABCharacterPlayer* CharacterToPlay);
+
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerRPCNotifyHit(const FHitResult& HitResult, float HitCheckTime);
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerRPCNotifyMiss(FVector TraceStart, FVector TraceEnd, FVector TraceDir, float HitCheckTime);
+	void ServerRPCNotifyMiss(FVector_NetQuantize TraceStart, FVector_NetQuantize TraceEnd, FVector_NetQuantize TraceDir, float HitCheckTime);
 
 	UPROPERTY(ReplicatedUsing = OnRep_CanAttack)
 	uint8 bCanAttack : 1;

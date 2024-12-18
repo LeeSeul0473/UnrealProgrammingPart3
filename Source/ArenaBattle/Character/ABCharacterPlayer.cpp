@@ -18,6 +18,7 @@
 #include "Engine/DamageEvents.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/GameStateBase.h"
+#include "EngineUtils.h"
 
 
 AABCharacterPlayer::AABCharacterPlayer()
@@ -222,6 +223,11 @@ void AABCharacterPlayer::SetCharacterControlData(const UABCharacterControlData* 
 
 void AABCharacterPlayer::ShoulderMove(const FInputActionValue& Value)
 {
+	if (!bCanAttack)
+	{
+		return;
+	}
+
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
 	const FRotator Rotation = Controller->GetControlRotation();
@@ -244,6 +250,11 @@ void AABCharacterPlayer::ShoulderLook(const FInputActionValue& Value)
 
 void AABCharacterPlayer::QuaterMove(const FInputActionValue& Value)
 {
+	if (!bCanAttack)
+	{
+		return;
+	}
+
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
 	float InputSizeSquared = MovementVector.SquaredLength();
@@ -438,7 +449,30 @@ void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 
 	PlayAttackAnimation();
 
-	MulticastRPCAttack();
+	//MulticastRPCAttack();
+	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld()))
+	{
+		if (PlayerController && GetController() != PlayerController)
+		{
+			if (!PlayerController->IsLocalController())
+			{
+				AABCharacterPlayer* OtherPlayer = Cast<AABCharacterPlayer>(PlayerController->GetPawn());
+				if (OtherPlayer)
+				{
+					OtherPlayer->ClientRPCPlayAnimation(this);
+				}
+			}
+		}
+	}
+}
+
+void AABCharacterPlayer::ClientRPCPlayAnimation_Implementation(AABCharacterPlayer* CharacterToPlay)
+{
+	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("Begin"));
+	if (CharacterToPlay)
+	{
+		CharacterToPlay->PlayAttackAnimation();
+	}
 }
 
 void AABCharacterPlayer::MulticastRPCAttack_Implementation()
@@ -475,7 +509,7 @@ bool AABCharacterPlayer::ServerRPCNotifyHit_Validate(const FHitResult& HitResult
 void AABCharacterPlayer::ServerRPCNotifyHit_Implementation(const FHitResult& HitResult, float HitCheckTime)
 {
 	AActor* HitActor = HitResult.GetActor();
-	if (IsValid(HitActor))
+	if (::IsValid(HitActor))
 	{
 		const FVector HitLocation = HitResult.Location;
 		const FBox HitBox = HitActor->GetComponentsBoundingBox();
@@ -490,7 +524,6 @@ void AABCharacterPlayer::ServerRPCNotifyHit_Implementation(const FHitResult& Hit
 		}
 
 #if ENABLE_DRAW_DEBUG
-
 		DrawDebugPoint(GetWorld(), ActorBoxCenter, 50.0f, FColor::Cyan, false, 5.0f);
 		DrawDebugPoint(GetWorld(), HitLocation, 50.0f, FColor::Magenta, false, 5.0f);
 
@@ -500,12 +533,12 @@ void AABCharacterPlayer::ServerRPCNotifyHit_Implementation(const FHitResult& Hit
 	}
 }
 
-bool AABCharacterPlayer::ServerRPCNotifyMiss_Validate(FVector TraceStart, FVector TraceEnd, FVector TraceDir, float HitCheckTime)
+bool AABCharacterPlayer::ServerRPCNotifyMiss_Validate(FVector_NetQuantize TraceStart, FVector_NetQuantize TraceEnd, FVector_NetQuantize TraceDir, float HitCheckTime)
 {
 	return (HitCheckTime - LastAttackStartTime) > AcceptMinCheckTime;
 }
 
-void AABCharacterPlayer::ServerRPCNotifyMiss_Implementation(FVector TraceStart, FVector TraceEnd, FVector TraceDir, float HitCheckTime)
+void AABCharacterPlayer::ServerRPCNotifyMiss_Implementation(FVector_NetQuantize TraceStart, FVector_NetQuantize TraceEnd, FVector_NetQuantize TraceDir, float HitCheckTime)
 {
 	DrawDebugAttackRange(FColor::Red, TraceStart, TraceEnd, TraceDir);
 }
