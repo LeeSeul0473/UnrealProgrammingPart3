@@ -15,3 +15,4 @@
 #define AB_SUBLOG(CatName, Verbosity, Format, ...) UE_LOG(CatName, Verbosity, TEXT("[%s][%s/%s] %s : %s"), LOG_NETMODEINFO, LOG_SUBLOCALROLEINFO, LOG_SUBREMOTEROLEINFO, LOG_CALLINFO, *FString::Printf(Format, ##__VA_ARGS__))
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAB, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogABTeleport, Log, All);
