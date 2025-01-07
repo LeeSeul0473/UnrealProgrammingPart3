@@ -81,4 +81,8 @@ protected:
 
 	UFUNCTION()
 	void OnRep_ModifierStat();
+
+//Reset Section
+public:
+	void ResetStat();
 };

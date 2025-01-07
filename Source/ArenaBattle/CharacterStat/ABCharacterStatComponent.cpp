@@ -14,7 +14,7 @@ UABCharacterStatComponent::UABCharacterStatComponent()
 
 	bWantsInitializeComponent = true;
 
-	SetIsReplicated(true);
+	//SetIsReplicated(true);
 }
 
 void UABCharacterStatComponent::InitializeComponent()
@@ -22,10 +22,13 @@ void UABCharacterStatComponent::InitializeComponent()
 	Super::InitializeComponent();
 
 	SetLevelStat(CurrentLevel);
-	MaxHp = BaseStat.MaxHp;
-	SetHp(MaxHp);
+	//MaxHp = BaseStat.MaxHp;
+	//SetHp(MaxHp);
+	ResetStat();
 
 	OnStatChanged.AddUObject(this, &UABCharacterStatComponent::SetNewMaxHp);
+
+	SetIsReplicated(true);
 }
 
 void UABCharacterStatComponent::SetLevelStat(int32 InNewLevel)
@@ -115,5 +118,12 @@ void UABCharacterStatComponent::OnRep_ModifierStat()
 {
 	AB_SUBLOG(LogAB, Log, TEXT("%s"), TEXT("Begin"));
 	OnStatChanged.Broadcast(BaseStat, ModifierStat);
+}
+
+void UABCharacterStatComponent::ResetStat()
+{
+	SetLevelStat(CurrentLevel);
+	MaxHp = BaseStat.MaxHp;
+	SetHp(MaxHp);
 }
 

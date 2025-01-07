@@ -20,6 +20,9 @@
 #include "GameFramework/GameStateBase.h"
 #include "EngineUtils.h"
 #include "ABCharacterMovementComponent.h"
+#include "Components/WidgetComponent.h"
+#include "GameFramework/PlayerState.h"
+#include "Engine/AssetManager.h"
 
 
 AABCharacterPlayer::AABCharacterPlayer(const FObjectInitializer& ObjectInitializer)
@@ -101,39 +104,43 @@ void AABCharacterPlayer::SetDead()
 {
 	Super::SetDead();
 
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-	if (PlayerController)
-	{
-		DisableInput(PlayerController);
-	}
+	GetWorldTimerManager().SetTimer(DeadTimerHandle, this, &AABCharacterPlayer::ResetPlayer, 5.0f, false);
+
+	//APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	//if (PlayerController)
+	//{
+	//	DisableInput(PlayerController);
+	//}
 }
 
 void AABCharacterPlayer::PossessedBy(AController* NewController)
 {
-	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("Begin"));
-	AActor* OwnerActor = GetOwner();
-	if (OwnerActor)
-	{
-		AB_LOG(LogAB, Log, TEXT("Owner : %s"), *OwnerActor->GetName());
-	}
-	else
-	{
-		AB_LOG(LogAB, Log, TEXT("%s"), TEXT("No Owner"));
-	}
+	//AB_LOG(LogAB, Log, TEXT("%s"), TEXT("Begin"));
+	//AActor* OwnerActor = GetOwner();
+	//if (OwnerActor)
+	//{
+	//	AB_LOG(LogAB, Log, TEXT("Owner : %s"), *OwnerActor->GetName());
+	//}
+	//else
+	//{
+	//	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("No Owner"));
+	//}
 
 	Super::PossessedBy(NewController);
 
-	OwnerActor = GetOwner();
-	if (OwnerActor)
-	{
-		AB_LOG(LogAB, Log, TEXT("Owner : %s"), *OwnerActor->GetName());
-	}
-	else
-	{
-		AB_LOG(LogAB, Log, TEXT("%s"), TEXT("No Owner"));
-	}
+	//OwnerActor = GetOwner();
+	//if (OwnerActor)
+	//{
+	//	AB_LOG(LogAB, Log, TEXT("Owner : %s"), *OwnerActor->GetName());
+	//}
+	//else
+	//{
+	//	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("No Owner"));
+	//}
 
-	AB_LOG(LogAB, Log, TEXT("%s"), TEXT("End"));
+	//AB_LOG(LogAB, Log, TEXT("%s"), TEXT("End"));
+
+	UpdateMeshFromPlayerState();
 }
 
 void AABCharacterPlayer::OnRep_Owner()
@@ -303,14 +310,16 @@ void AABCharacterPlayer::Attack()
 			//OnRep_CanAttack();
 			GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 
-			FTimerHandle Handle;
-			GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]
-				{
-					bCanAttack = true;
-					//OnRep_CanAttack();
-					GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
-				}
-			), AttackTime, false, -1.0f);
+			//FTimerHandle Handle;
+			//GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]
+			//	{
+			//		bCanAttack = true;
+			//		//OnRep_CanAttack();
+			//		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+			//	}
+			//), AttackTime, false, -1.0f);
+
+			GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, AttackTime, false);
 
 			PlayAttackAnimation();
 		}
@@ -429,7 +438,7 @@ bool AABCharacterPlayer::ServerRPCAttack_Validate(float AttackStartTime)
 	{
 		return true;
 	}
-	return (AttackStartTime-LastAttackStartTime) > AttackTime;
+	return (AttackStartTime-LastAttackStartTime) > (AttackTime - 0.4f);
 }
 
 void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
@@ -445,13 +454,15 @@ void AABCharacterPlayer::ServerRPCAttack_Implementation(float AttackStartTime)
 		AB_LOG(LogAB, Log, TEXT("LagTiem : %f"), AttackTimeDifference);
 		AttackTimeDifference = FMath::Clamp(AttackTimeDifference, 0.0f, AttackTime - 0.01f);
 
-		FTimerHandle Handle;
-		GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]
-			{
-				bCanAttack = true;
-				OnRep_CanAttack();
-			}
-		), AttackTime- AttackTimeDifference, false, -1.0f);
+		//FTimerHandle Handle;
+		//GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]
+		//	{
+		//		bCanAttack = true;
+		//		OnRep_CanAttack();
+		//	}
+		//), AttackTime- AttackTimeDifference, false, -1.0f);
+
+		GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AABCharacterPlayer::ResetAttack, AttackTime - AttackTimeDifference, false);
 	}
 
 	LastAttackStartTime = AttackStartTime;
@@ -586,4 +597,64 @@ void AABCharacterPlayer::Teleport()
 	{
 		ABMovement->SetTepelortCommand();
 	}
+}
+
+void AABCharacterPlayer::ResetPlayer()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		AnimInstance->StopAllMontages(0.0f);
+	}
+
+	Stat->SetLevelStat(1);
+	Stat->ResetStat();
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+	SetActorEnableCollision(true);
+	HpBar->SetHiddenInGame(false);
+
+	if (HasAuthority())
+	{
+		IABGameInterface* ABGameMode = GetWorld()->GetAuthGameMode<IABGameInterface>();
+		if (ABGameMode)
+		{
+			FTransform NewTransform = ABGameMode->GetRandomStartTransform();
+			TeleportTo(NewTransform.GetLocation(), NewTransform.GetRotation().Rotator());
+		}
+	}
+}
+
+void AABCharacterPlayer::ResetAttack()
+{
+	bCanAttack = true;
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+}
+
+float AABCharacterPlayer::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	const float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	if (Stat->GetCurrentHp() <= 0.0f)
+	{
+		IABGameInterface* ABGameMode = GetWorld()->GetAuthGameMode<IABGameInterface>();
+		if (ABGameMode)
+		{
+			ABGameMode->OnPlayerKilled(EventInstigator, GetController(), this);
+		}
+	}
+
+	return ActualDamage;
+}
+
+void AABCharacterPlayer::UpdateMeshFromPlayerState()
+{
+	int32 MeshIndex = FMath::Clamp(GetPlayerState()->GetPlayerId() % PlayerMeshes.Num(), 0, PlayerMeshes.Num() - 1);
+	MeshHandle = UAssetManager::Get().GetStreamableManager().RequestAsyncLoad(PlayerMeshes[MeshIndex], FStreamableDelegate::CreateUObject(this, &AABCharacterBase::MeshLoadCompleted));
+}
+
+void AABCharacterPlayer::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	UpdateMeshFromPlayerState();
 }
